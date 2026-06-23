@@ -1,0 +1,33 @@
+stages:
+  - test
+  - build
+
+variables:
+  IMAGE_NAME: devsecops-demo
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+test:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - pip install --upgrade pip --quiet
+    - pip install flask pytest -r app/requirements.txt --quiet
+  script:
+    - echo "Running unit tests..."
+    - cd app && python -m pytest test_app.py -v
+  only:
+    - branches
+
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG app/
+    - docker images | grep $IMAGE_NAME
+  only:
+    - branches
